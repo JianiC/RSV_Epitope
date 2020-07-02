@@ -35,3 +35,4 @@ recombinant D46/D53 strain
 ### RSV F protein data
 1. RSV F nucleotide data were translated to protein in Genious using standard genetic code, and final stop codon has been removed.
 2. File were export as fasta and further edit the extension as .pep were epitope analysis.
+3. HTML file were converted into csv file with Excel (use group_merge.sh)
