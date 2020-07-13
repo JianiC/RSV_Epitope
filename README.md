@@ -31,6 +31,8 @@ recombinant D46/D53 strain
 5. The full HRSV_F dataset were seperated into A and B using subtype information with python scripts
 6. Gene alignment were perfomed using MAFFT with normal option
 7. Sequence with low quality were removed ( causing insertion; no start codon)
+8. Remove sequence with long branch
+9. Remove identical sequence with same isolated year and country, the sequence with earlier isolated date was kept.
 
 ### RSV F protein data
 1. RSV F nucleotide data were translated to protein in Genious using standard genetic code, and final stop codon has been removed.
