@@ -335,4 +335,187 @@ HRSVB_G.epimx.data.hp<-HRSVB_G.epimx.data.seq%>%
 HRSVB_G.epimx.data.hp<-dcast(HRSVB_G.epimx.data.hp, Accession ~ epitope1,value.var = "code") 
 write.csv(HRSVB_G.epimx.data.hp,"iVAX/HRSVB_G_hp.csv",row.names=FALSE)
 
+#############################################################################################
 
+## RSVB_G_classI epimax summary
+
+
+
+RSVB_G_classI<-read.csv("iVAX/CLASS_I_epitope/CLASS1_PROTEIN_REPORT_HRSVB_G_CLEAN_0819_PROTEIN_All_Proteins_BY_9.csv"
+                        ,header = FALSE, stringsAsFactors = FALSE, sep = ",")
+
+
+totalseq <- grep("HRSVB_G_CLEAN_0819_PROTEIN ", RSVB_G_classI$V1, useBytes = TRUE)
+endseq <- grep("Summarized Results", RSVB_G_classI$V1, useBytes = TRUE)
+epimx.data_output <- ""
+
+epimx.data <- RSVB_G_classI%>% slice((totalseq[1]):(endseq[1]-2))
+seqname <- gsub("File: HRSVB_G_CLEAN_0819_PROTEIN - Sequence: ", "", epimx.data$V1[1])
+epimx.data <- epimx.data %>% slice(grep("Frame", V1, useBytes = T):nrow(epimx.data))
+colnames(epimx.data) <- c("Frame.Start", "AA.Sequence", "Frame.Stop","Hydro-", "A0101", "A0201", "A0301",  
+                          "A2402", "B0702", "B4403", "Hits")
+epimx.data <- epimx.data[-c(1:2),]
+epimx.data.reshape <- epimx.data %>% mutate(Seq.name = seqname) %>% 
+  dplyr::select(Seq.name, Frame.Start:Hits) %>%
+  gather(HLA.Alleles, Z.score, "A0101":"B4403", factor_key = TRUE)
+
+epimx.data_output <- rbind(epimx.data_output, epimx.data.reshape)
+
+
+
+for (i in 1:length(totalseq)){
+  epimx.data <- RSVB_G_classI%>% slice((totalseq[i]):(endseq[i]-2))
+  seqname <- gsub("File: HRSVB_G_CLEAN_0819_PROTEIN - Sequence: ", "", epimx.data$V1[1])
+  epimx.data <- epimx.data %>% slice(grep("Frame", V1, useBytes = T):nrow(epimx.data))
+  colnames(epimx.data) <- c("Frame.Start", "AA.Sequence", "Frame.Stop","Hydro-", "A0101", "A0201", "A0301",  
+                            "A2402", "B0702", "B4403", "Hits")
+  epimx.data <- epimx.data[-c(1:2),]
+  epimx.data.reshape <- epimx.data %>% mutate(Seq.name = seqname) %>% 
+    dplyr::select(Seq.name, Frame.Start:Hits) %>%
+    gather(HLA.Alleles, Z.score, "A0101":"B4403", factor_key = TRUE)
+  
+  epimx.data_output <- rbind(epimx.data_output, epimx.data.reshape)
+  
+}
+RSVB_G_epimax<-epimx.data_output
+######################################################################################
+
+#MORE data restructuring 
+
+RSVB_G_epimx_data.2 <- RSVB_G_epimax %>% filter(!Seq.name == "")
+## remove duplicate from HRSVB_F.epimx.data.2
+
+RSVB_G.epimx.data.2 <-distinct(RSVB_G_epimx_data.2)
+x <- data.frame(unique(RSVB_G.epimx.data.2$Seq.name)) ## get all sequence name  
+
+write.csv(RSVB_G.epimx.data.2,"iVAX/RSVB_G/RSVB_G_classI_epimx.csv")  
+
+#####################################################################################  
+RSVB_G.epimx.data.2 <-read.csv("iVAX/RSVB_G/RSVB_G_classI_epimx.csv")
+#filter Z SCORE >= 1.64
+RSVB_G.epimx.data.3 <- RSVB_G.epimx.data.2 %>% filter(Z.score >= 2.328)
+
+
+#filter EPIBARS Hits >=4
+
+RSVB_G.epimx.data.3 <- RSVB_G.epimx.data.3 %>% filter((as.numeric(Hits)) >= 1)
+
+write.csv(RSVB_G.epimx.data.3 ,"iVAX/RSVB_G/RSVB_G_classI_epimax_filter.csv")
+
+#############################################################################
+
+
+RSVB_G.epimx.data.3<-RSVB_G.epimx.data.3 %>% separate(Seq.name, into = c("Accession", "Subtype", "Country", "date", "genotype"), sep = "-", extra = "merge")
+seq <- scan("clean_data/RSVB_G_deletion1004_accession.txt", what="", sep="\n")
+
+
+
+#RSVB_G.epimx.data.3 <- RSVB_G.epimx.data.3 %>% 
+#  mutate(Type = ifelse(RSVB_G.epimx.data.3$Accession %in% seq, "T", "F"))
+#RSVB_G.epimx.data.3<-RSVB_G.epimx.data.3%>% filter(RSVB_G.epimx.data.3$Type =="T")
+##############################################################################################################
+
+## Get the epitope profile for each eptiope frame start site
+## with 6 nt deletion at the upstream
+
+###1. coverage at each site
+RSVB_G.epimx.data.4<-RSVB_G.epimx.data.3%>% distinct(Accession, Frame.Start,AA.Sequence,Frame.Stop)
+
+RSVB_G.epimx.data.4<-RSVB_G.epimx.data.4%>% 
+  group_by(Frame.Start, Frame.Stop) %>%
+  dplyr::summarise(count = n())
+
+n<-n_distinct(RSVB_G.epimx.data.3$Accession)
+RSVB_G.epimx.data.4<- RSVB_G.epimx.data.4%>% mutate(coverge = count/as.numeric(n))
+
+### 2. get the sepecific epitope profile, including coverage, HLA list and average z score
+### coverage for each epitope
+RSVB_G.epimx.data.5<-RSVB_G.epimx.data.3 %>% distinct(Accession, Frame.Start,AA.Sequence,Frame.Stop)
+
+RSVB_G.epimx.data.5<-RSVB_G.epimx.data.5%>% 
+  group_by(Frame.Start, AA.Sequence,Frame.Stop) %>%
+  dplyr::summarise(count = n())
+
+## calculate the coverage percentage
+RSVB_G.epimx.data.5<- RSVB_G.epimx.data.5%>% mutate(coverge = count/as.numeric(n))
+
+
+### 3.get the HLA list for each epitope
+RSVB_G.epimx.data.6<-RSVB_G.epimx.data.3 %>% distinct(Frame.Start,AA.Sequence,Frame.Stop,HLA.Alleles)
+RSVB_G.epimx_HLA_list<-RSVB_G.epimx.data.6 %>% 
+  group_by(AA.Sequence) %>% 
+  mutate(HLAs = paste0(HLA.Alleles, collapse = ",")) %>%
+  dplyr::select("Frame.Start","AA.Sequence","HLAs")
+
+RSVB_G.epimx_HLA_list<-distinct(RSVB_G.epimx_HLA_list)
+
+## 4.get the average Z score for each epitope
+RSVB_G.epimx.data.7<-RSVB_G.epimx.data.3 %>% distinct(Frame.Start,AA.Sequence,Frame.Stop,HLA.Alleles,Hits,Z.score)
+
+RSVB_G.epimx.data.7<-RSVB_G.epimx.data.7%>%
+  group_by(Frame.Start,AA.Sequence,Frame.Stop,Hits)%>%
+  summarise(sum_Zscore=sum(as.numeric(Z.score)))
+
+RSVB_G.epimx.data.7<-RSVB_G.epimx.data.7%>%mutate(mean.score=sum_Zscore/9)
+
+##merge all of the epitope profile together
+
+RSVB_G_epitope_sum<-left_join(RSVB_G.epimx.data.5,RSVB_G.epimx_HLA_list,RSVB_G.epimx.data.6,by = c("Frame.Start" = "Frame.Start", "AA.Sequence" = "AA.Sequence"))
+
+RSVB_G_epitope_sum<-left_join(RSVB_G_epitope_sum,RSVB_G.epimx.data.7,
+                              by = c("Frame.Start" = "Frame.Start", "AA.Sequence" = "AA.Sequence"))
+
+## write these 445 epitope profile
+write.csv(RSVB_G_epitope_sum,"iVAX/RSVB_G/RSVB_G_classI_epitope_sum_0810.csv",row.names=FALSE)
+
+##############################################################################################################################3
+
+## filter the epitpe site with > 5% coverge 
+
+## filter the interest epitope
+epitope_site<-RSVB_G.epimx.data.4%>%filter(coverge>=0.05)
+## from the epitope site to get the epitope profile
+epitope_new <-left_join(epitope_site,RSVB_G_epitope_sum,by=c("Frame.Start" = "Frame.Start"))
+
+## sort the dataframe by Frame start and then number of counts for each epitope
+
+epitope_new <-epitope_new[order(epitope_new$Frame.Start, -epitope_new$count.y),]
+## write epitope for hp visulization 54 sites, 370 epitope
+write.csv(epitope_new ,"iVAX/RSVB_G/RSVB_G_classI_epitope_hplist0813.csv",row.names=FALSE)
+## prepare heatmap for visulization
+
+## transform the different epitope at the same location with different states
+epitope_new$code<-epitope_new$Frame.Start
+
+epitope_new$code<- make.unique(as.character(epitope_new$code))
+epitope_new$code<-as.numeric(epitope_new$code)%%1 *10+1 
+
+epitope_new$code2<-as.character(epitope_new$code)
+## if the presence of epitope < 1%
+epitope_new<-epitope_new %>% mutate(code = ifelse(coverge.y<=0.01, "x",code2))
+## transform to heatmap
+## predominant site profile
+
+site<-epitope_new%>%
+  filter(code=="1")%>%
+  dplyr::select("Frame.Start","AA.Sequence")
+site$epitope1<-paste(site$Frame.Start," ",site$AA.Sequence)
+
+
+RSVB_G.epimx.data.seq<-RSVB_G.epimx.data.3 %>% distinct(Accession, Frame.Start,AA.Sequence,Frame.Stop)
+
+## add epitope infor
+RSVB_G.epimx.data.seq<-left_join(epitope_new,RSVB_G.epimx.data.seq,
+                                 by = c("Frame.Start" = "Frame.Start", "AA.Sequence" = "AA.Sequence"))
+## add epitope site infor
+RSVB_G.epimx.data.seq<-left_join(RSVB_G.epimx.data.seq,site,
+                                 by = c("Frame.Start" = "Frame.Start"))
+
+RSVB_G.epimx.data.hp<-RSVB_G.epimx.data.seq%>%
+  ungroup()%>%
+  dplyr::select("Accession","code","epitope1")
+
+## reshape, change the AA Sequence value to column name
+RSVB_G.epimx.data.hp<-dcast(RSVB_G.epimx.data.hp, Accession ~ epitope1,value.var = "code") 
+write.csv(RSVB_G.epimx.data.hp,"iVAX/RSVB_G/RSVB_G_classI_hp_0810.csv",row.names=FALSE)
+#################################################################################################
