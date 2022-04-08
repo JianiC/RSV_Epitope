@@ -36,14 +36,12 @@ Class I: Bind to any HLA allele top 1% binding prbablity
 ### Epitope landscape
 1. Epitope distance algorithm with cross-conseved epitope
 T cell epitope immune distance (D) between two wild circulating strains (w_(1 )and w_(2 )) can be defined as the sum of Z-scaled binding probabilities of paired epitopes that are unable to induce cross-reactivity (non-cross conserved epitopes) within two protein sequences using equations (1.1 and 1.2).
-
 d is the T cell immunity distance between a pair of epitopes, i and j are the non-cross conserved T cell epitopes from two protein sequences,
-
 a is a class I or class II allele,
-
 p is the predicted binding probability against allele a,
+A is a set of alleles. 
 
- A is a set of alleles. 
+<img width="779" alt="Screen Shot 2022-04-07 at 9 56 23 PM" src="https://user-images.githubusercontent.com/47227610/162347930-4903689b-20f7-4a7e-a5f9-cfb510a0fc3b.png">
 
 
 2. MDS + k-means cluster
