@@ -21,14 +21,26 @@ recombinant D46/D53 strain
 ### Eptiope identification
 
 Eitopes information collect from iVAX tool kits were cleaned up
+1. Class II: Binding potential score top 5%, Binding alleles >3 for class II
+
+Class I: Bind to any HLA allele top 1% binding prbablity
+
+2. Conservation
+3. tolerate epitope: cross-conserved to human protein
+4. cross-conserved for both type A and type B
 
 #### Epitope distribution
-1. Eptipe heatbar
+1. Epitope heatbar, compare with other pathogen
 2. distribution map to 3D structure using pymol
 
 ### Epitope landscape
-1. Epitope distance algorithm
-2. MDS
-3. IEDB results evaluation
+1. Epitope distance algorithm with cross-conseved epitope
+2. MDS + k-means cluster
+3. validate with IEDB results
 
-### Vaccine strain evalutation
+### Vaccine strain evaluation
+calculate share epitope propotion
+
+### Phylogenetic analysis
+1. ML with Raxml
+2. Ancestral sequence recosntruction "Treetime"
